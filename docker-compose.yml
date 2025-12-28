@@ -92,6 +92,19 @@ services:
       retries: 3
       start_period: 60s
 
+  frontend:
+    build: ./frontend
+    container_name: shop-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - shop-network
+    environment:
+      NODE_ENV: production
+    restart: unless-stopped
+
   # Database for Orders
   sqlserver-orders:
     image: mcr.microsoft.com/mssql/server:2022-latest

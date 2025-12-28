@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gozon Shop</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f8f9fa; padding: 20px; }
+        .card { box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: none; border-radius: 10px; margin-bottom: 20px; }
+        .card-header { border-radius: 10px 10px 0 0 !important; }
+        .btn { border-radius: 8px; padding: 8px 20px; }
+        .table { background-color: white; border-radius: 8px; overflow: hidden; }
+        .badge { padding: 6px 12px; border-radius: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .modal-xl { max-width: 90%; }
+        .user-id-badge { font-family: monospace; background: #e9ecef; padding: 3px 8px; border-radius: 4px; }
+        .balance-positive { color: #28a745; font-weight: bold; }
+        .balance-zero { color: #6c757d; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4"><i class="bi bi-shop"></i> Интернет-магазин Gozon</h1>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-person-circle"></i> Информация о пользователе</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Ваш User ID:</strong></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control font-monospace" id="userId" readonly>
+                                <button class="btn btn-outline-secondary" type="button" onclick="copyUserId()" title="Скопировать">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">Используется для идентификации в системе (GUID формат)</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-end h-100">
+                            <button class="btn btn-secondary me-2" onclick="generateUserId()">
+                                <i class="bi bi-arrow-clockwise"></i> Сгенерировать новый ID
+                            </button>
+                            <button class="btn btn-outline-info" onclick="showUserIdInfo()">
+                                <i class="bi bi-info-circle"></i> Инфо
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-wallet2"></i> Баланс счета</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <h2 id="balance" class="balance-positive">0.00 ₽</h2>
+                        <p class="text-muted mb-3" id="balanceStatus">Загрузка...</p>
+                        <div class="mt-3">
+                            <button class="btn btn-success me-2" onclick="createAccount()">
+                                <i class="bi bi-plus-circle"></i> Создать счет
+                            </button>
+                            <button class="btn btn-primary" onclick="topUpAccount()">
+                                <i class="bi bi-cash-coin"></i> Пополнить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="bi bi-lightning-charge"></i> Быстрые действия</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary w-100 mb-2" onclick="quickTopUp(100)">
+                            Пополнить на 100 ₽
+                        </button>
+                        <button class="btn btn-outline-primary w-100 mb-2" onclick="quickTopUp(500)">
+                            Пополнить на 500 ₽
+                        </button>
+                        <button class="btn btn-outline-primary w-100 mb-2" onclick="quickTopUp(1000)">
+                            Пополнить на 1000 ₽
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="bi bi-cart-plus"></i> Создать заказ</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-warning btn-lg w-100 py-3" onclick="createOrder()">
+                            <i class="bi bi-plus-lg"></i> Создать новый заказ
+                        </button>
+                        <p class="mt-2 text-muted">
+                            При создании заказа система автоматически спишет средства со счета
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-list-check"></i> Мои заказы (<span id="orderCount">0</span>)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="ordersContainer">
+                            <div class="text-center py-4">
+                                <i class="bi bi-cart-x text-muted" style="font-size: 3rem;"></i>
+                                <p class="text-muted mt-2">Заказов пока нет</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-primary w-100 mt-3" onclick="fetchOrders()">
+                            <i class="bi bi-arrow-clockwise"></i> Обновить список
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Статус сервисов</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-info w-100 mb-2" onclick="checkService('orders/health')">
+                            <i class="bi bi-box"></i> Order Service
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-info w-100 mb-2" onclick="checkService('accounts/health')">
+                            <i class="bi bi-cash-stack"></i> Payment Service
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-success w-100 mb-2" onclick="getAllAccountsModal()">
+                            <i class="bi bi-people"></i> Все счета
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-warning w-100 mb-2" onclick="testAllServices()">
+                            <i class="bi bi-gear"></i> Тест системы
+                        </button>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="alert alert-light">
+                                <h6><i class="bi bi-info-circle"></i> Информация о системе</h6>
+                                <small>
+                                    <div id="systemInfo">Загрузка...</div>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-light">
+                                <h6><i class="bi bi-clock-history"></i> Последняя активность</h6>
+                                <small>
+                                    <div id="lastActivity">Нет активности</div>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 text-center text-muted">
+            <small><i class="bi bi-c-circle"></i> Интернет-магазин Gozon | Домашняя работа №4</small>
+        </div>
+    </div>
+
+    <!-- Модальное окно для всех счетов -->
+    <div class="modal fade" id="allAccountsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-people"></i> Все счета в системе</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="allAccountsContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-success" role="status">
+                                <span class="visually-hidden">Загрузка...</span>
+                            </div>
+                            <p class="mt-2">Загрузка списка счетов...</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-success" onclick="exportAccounts()">
+                        <i class="bi bi-download"></i> Экспорт
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const API_BASE = '/api/proxy';
+        let userId = '';
+        let lastUpdate = new Date();
+        
+        // Генерация GUID
+        function generateGuid() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        
+        // Инициализация пользователя
+        function initUser() {
+            let savedId = localStorage.getItem('userId');
+            
+            // Проверяем, валиден ли сохраненный ID (должен быть GUID)
+            if (savedId && isValidGuid(savedId)) {
+                userId = savedId;
+            } else {
+                // Если нет или невалиден - генерируем новый GUID
+                userId = generateGuid();
+                localStorage.setItem('userId', userId);
+            }
+            
+            document.getElementById('userId').value = userId;
+            updateSystemInfo();
+        }
+        
+        // Проверка GUID на валидность
+        function isValidGuid(guid) {
+            const regex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+            return regex.test(guid);
+        }
+        
+        // Генерация нового User ID
+        function generateUserId() {
+            userId = generateGuid();
+            document.getElementById('userId').value = userId;
+            localStorage.setItem('userId', userId);
+            
+            // Обновляем данные
+            fetchBalance();
+            fetchOrders();
+            updateSystemInfo();
+            
+            showToast('Новый User ID сгенерирован', 'success');
+        }
+        
+        // Копирование User ID в буфер обмена
+        function copyUserId() {
+            navigator.clipboard.writeText(userId).then(() => {
+                showToast('User ID скопирован в буфер', 'info');
+            });
+        }
+        
+        // Создание счета
+        async function createAccount() {
+            try {
+                showLoading('Создание счета...');
+                
+                const response = await fetch(`${API_BASE}/accounts`, {
+                    method: 'POST',
+                    headers: { 
+                        'User-Id': userId,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({})
+                });
+                
+                hideLoading();
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showToast('Счет успешно создан!', 'success');
+                    
+                    // Обновляем баланс
+                    await fetchBalance();
+                    updateLastActivity('Счет создан');
+                } else {
+                    const errorText = await response.text();
+                    let errorMsg = 'Ошибка создания счета';
+                    
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        errorMsg = errorJson.title || errorJson;
+                    } catch {
+                        errorMsg = errorText;
+                    }
+                    
+                    if (response.status === 409) {
+                        showToast('Счет уже существует', 'info');
+                        await fetchBalance();
+                    } else {
+                        showToast(`${errorMsg}`, 'danger');
+                    }
+                }
+            } catch (error) {
+                hideLoading();
+                showToast(`Сетевая ошибка: ${error.message}`, 'danger');
+            }
+        }
+        
+        // Получение баланса
+        async function fetchBalance() {
+            try {
+                const response = await fetch(`${API_BASE}/accounts/${userId}/balance`);
+                
+                const balanceElement = document.getElementById('balance');
+                const statusElement = document.getElementById('balanceStatus');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const balance = data.balance || 0;
+                    
+                    // Обновляем отображение
+                    balanceElement.textContent = `${balance.toFixed(2)} ₽`;
+                    balanceElement.className = balance > 0 ? 'balance-positive' : 'balance-zero';
+                    
+                    statusElement.textContent = 'Баланс актуален';
+                    statusElement.className = 'text-success';
+                } else if (response.status === 404) {
+                    balanceElement.textContent = '0.00 ₽';
+                    balanceElement.className = 'balance-zero';
+                    statusElement.textContent = 'Счет не создан';
+                    statusElement.className = 'text-danger';
+                } else {
+                    balanceElement.textContent = 'Ошибка';
+                    balanceElement.className = 'text-danger';
+                    statusElement.textContent = 'Не удалось загрузить баланс';
+                    statusElement.className = 'text-danger';
+                }
+            } catch (error) {
+                console.error('Ошибка получения баланса:', error);
+            }
+        }
+        
+        // Быстрое пополнение
+        function quickTopUp(amount) {
+            if (confirm(`Пополнить счет на ${amount} ₽?`)) {
+                topUpAccount(amount);
+            }
+        }
+        
+        // Пополнение счета
+        async function topUpAccount(predefinedAmount = null) {
+            let amount = predefinedAmount;
+            
+            if (!amount) {
+                const input = prompt('Введите сумму пополнения (₽):');
+                if (!input) return;
+                
+                amount = parseFloat(input);
+                if (isNaN(amount) || amount <= 0) {
+                    showToast('Некорректная сумма', 'warning');
+                    return;
+                }
+            }
+            
+            try {
+                showLoading(`Пополнение счета на ${amount} ₽...`);
+                
+                const response = await fetch(`${API_BASE}/accounts/${userId}/top-up`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'User-Id': userId
+                    },
+                    body: JSON.stringify({ amount: amount })
+                });
+                
+                hideLoading();
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showToast(`Счет пополнен на ${amount} ₽! Новый баланс: ${data.newBalance?.toFixed(2) || '?'} ₽`, 'success');
+                    
+                    // Обновляем баланс
+                    await fetchBalance();
+                    updateLastActivity(`Пополнение на ${amount} ₽`);
+                } else {
+                    const errorText = await response.text();
+                    showToast(`Ошибка пополнения: ${errorText}`, 'danger');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast(`Сетевая ошибка: ${error.message}`, 'danger');
+            }
+        }
+        
+        // Создание заказа
+        async function createOrder() {
+            const amount = parseFloat(prompt('Введите сумму заказа (₽):'));
+            if (isNaN(amount) || amount <= 0) {
+                showToast('Некорректная сумма', 'warning');
+                return;
+            }
+            
+            const description = prompt('Введите описание заказа:');
+            if (!description) {
+                showToast('Введите описание', 'warning');
+                return;
+            }
+            
+            try {
+                showLoading('Создание заказа...');
+                
+                const response = await fetch(`${API_BASE}/orders`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'User-Id': userId
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        description: description
+                    })
+                });
+                
+                hideLoading();
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showToast(`Заказ создан! ID: ${data.id?.substring(0, 8)}...`, 'success');
+                    
+                    // Обновляем данные
+                    await fetchOrders();
+                    await fetchBalance();
+                    updateLastActivity(`Создан заказ на ${amount} ₽`);
+                } else {
+                    const errorText = await response.text();
+                    showToast(`Ошибка создания заказа: ${errorText}`, 'danger');
+                }
+            } catch (error) {
+                hideLoading();
+                showToast(`Сетевая ошибка: ${error.message}`, 'danger');
+            }
+        }
+        
+        // Получение списка заказов
+        async function fetchOrders() {
+            try {
+                const response = await fetch(`${API_BASE}/orders`, {
+                    headers: { 'User-Id': userId }
+                });
+                
+                if (response.ok) {
+                    const orders = await response.json();
+                    renderOrders(Array.isArray(orders) ? orders : []);
+                } else {
+                    renderOrders([]);
+                }
+            } catch (error) {
+                console.error('Ошибка получения заказов:', error);
+                renderOrders([]);
+            }
+        }
+        
+        // Отображение заказов
+        function renderOrders(orders) {
+            const container = document.getElementById('ordersContainer');
+            const countElement = document.getElementById('orderCount');
+            
+            countElement.textContent = orders.length;
+            lastUpdate = new Date();
+            
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="bi bi-cart-x text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">Заказов пока нет</p>
+                    </div>`;
+                return;
+            }
+            
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Описание</th>
+                                <th>Сумма</th>
+                                <th>Статус</th>
+                                <th>Дата создания</th>
+                                <th>Дата обновления</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+            
+            orders.forEach(order => {
+                const statusClass = order.status === 'FINISHED' ? 'bg-success' :
+                                 order.status === 'CANCELLED' ? 'bg-danger' : 
+                                 order.status === 'NEW' ? 'bg-warning' : 'bg-secondary';
+                
+                const statusText = order.status === 'NEW' ? 'Новый' :
+                                 order.status === 'FINISHED' ? 'Завершен' :
+                                 order.status === 'CANCELLED' ? 'Отменен' : order.status || 'Неизвестен';
+                
+                html += `
+                    <tr>
+                        <td><span class="user-id-badge">${order.id?.substring(0, 8)}...</span></td>
+                        <td>${order.description || ''}</td>
+                        <td><strong>${order.amount?.toFixed(2) || '0.00'} ₽</strong></td>
+                        <td><span class="badge ${statusClass}">${statusText}</span></td>
+                        <td>${order.createdAt ? new Date(order.createdAt).toLocaleString('ru-RU') : ''}</td>
+                        <td>${order.updatedAt ? new Date(order.updatedAt).toLocaleString('ru-RU') : ''}</td>
+                    </tr>`;
+            });
+            
+            html += `</tbody></table></div>`;
+            container.innerHTML = html;
+        }
+        
+        // Модальное окно со всеми счетами
+        async function getAllAccountsModal() {
+            const modal = new bootstrap.Modal(document.getElementById('allAccountsModal'));
+            modal.show();
+            
+            await loadAllAccounts();
+        }
+        
+        // Загрузка всех счетов
+        async function loadAllAccounts() {
+            const content = document.getElementById('allAccountsContent');
+            
+            try {
+                const response = await fetch(`${API_BASE}/accounts`);
+                
+                if (response.ok) {
+                    const accounts = await response.json();
+                    
+                    if (Array.isArray(accounts) && accounts.length > 0) {
+                        let html = `
+                            <div class="mb-3">
+                                <span class="badge bg-success">Всего счетов: ${accounts.length}</span>
+                                <span class="badge bg-info ms-2">Общий баланс: ${accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0).toFixed(2)} ₽</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-success">
+                                        <tr>
+                                            <th>ID счета</th>
+                                            <th>User ID</th>
+                                            <th>Баланс</th>
+                                            <th>Создан</th>
+                                            <th>Обновлен</th>
+                                            <th>Действия</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>`;
+                        
+                        accounts.forEach(account => {
+                            const isCurrentUser = account.userId === userId;
+                            const rowClass = isCurrentUser ? 'table-primary' : '';
+                            
+                            html += `
+                                <tr class="${rowClass}">
+                                    <td><span class="user-id-badge">${account.id || 'N/A'}</span></td>
+                                    <td>
+                                        <span class="user-id-badge">${account.userId || 'N/A'}</span>
+                                        ${isCurrentUser ? '<span class="badge bg-primary ms-2">Вы</span>' : ''}
+                                    </td>
+                                    <td class="${account.balance > 0 ? 'balance-positive' : ''}">
+                                        <strong>${account.balance?.toFixed(2) || '0.00'} ₽</strong>
+                                    </td>
+                                    <td>${account.createdAt ? new Date(account.createdAt).toLocaleString('ru-RU') : ''}</td>
+                                    <td>${account.updatedAt ? new Date(account.updatedAt).toLocaleString('ru-RU') : ''}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-success" onclick="useAccount('${account.userId}')" ${isCurrentUser ? 'disabled' : ''}>
+                                            <i class="bi bi-person-check"></i> Использовать
+                                        </button>
+                                    </td>
+                                </tr>`;
+                        });
+                        
+                        html += `</tbody></table></div>`;
+                        content.innerHTML = html;
+                    } else {
+                        content.innerHTML = `
+                            <div class="text-center py-4">
+                                <i class="bi bi-wallet text-muted" style="font-size: 3rem;"></i>
+                                <p class="text-muted mt-2">Нет данных о счетах</p>
+                            </div>`;
+                    }
+                } else {
+                    content.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle"></i> Ошибка загрузки данных
+                        </div>`;
+                }
+            } catch (error) {
+                content.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> Сетевая ошибка: ${error.message}
+                    </div>`;
+            }
+        }
+        
+        // Использовать другой аккаунт
+        function useAccount(newUserId) {
+            if (confirm(`Использовать аккаунт ${newUserId.substring(0, 8)}...?`)) {
+                userId = newUserId;
+                localStorage.setItem('userId', userId);
+                document.getElementById('userId').value = userId;
+                
+                // Обновляем данные
+                fetchBalance();
+                fetchOrders();
+                updateSystemInfo();
+                
+                showToast('Аккаунт изменен', 'success');
+                
+                // Закрываем модальное окно
+                bootstrap.Modal.getInstance(document.getElementById('allAccountsModal')).hide();
+            }
+        }
+        
+        // Экспорт счетов
+        function exportAccounts() {
+            const table = document.querySelector('#allAccountsModal table');
+            if (!table) return;
+            
+            let csv = [];
+            const rows = table.querySelectorAll('tr');
+            
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td, th');
+                const rowData = Array.from(cols).map(col => col.innerText).join(';');
+                csv.push(rowData);
+            });
+            
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'accounts_' + new Date().toISOString().slice(0, 10) + '.csv';
+            a.click();
+            
+            showToast('Данные экспортированы в CSV', 'success');
+        }
+        
+        // Проверка сервиса
+        async function checkService(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE}/${endpoint}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`${endpoint.split('/')[0]} Service:\n\nСтатус: ${data.status}\nВремя: ${data.timestamp}\nСервис: ${data.service}`);
+                } else {
+                    alert(`❌ Сервис недоступен: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                alert('❌ Ошибка проверки сервиса: ' + error.message);
+            }
+        }
+        
+        // Тест всех сервисов
+        async function testAllServices() {
+            showLoading('Тестирование системы...');
+            
+            try {
+                const [ordersRes, accountsRes] = await Promise.all([
+                    fetch(`${API_BASE}/orders/health`),
+                    fetch(`${API_BASE}/accounts/health`)
+                ]);
+                
+                hideLoading();
+                
+                const ordersOk = ordersRes.ok;
+                const accountsOk = accountsRes.ok;
+                
+                let message = 'Результаты теста:\n\n';
+                message += `Order Service: ${ordersOk ? 'Работает' : 'Не работает'}\n`;
+                message += `Payment Service: ${accountsOk ? 'Работает' : 'Не работает'}\n\n`;
+                
+                if (ordersOk && accountsOk) {
+                    message += 'Все системы работают нормально!';
+                } else {
+                    message += 'Некоторые сервисы недоступны';
+                }
+                
+                alert(message);
+                updateLastActivity('Тест системы выполнен');
+            } catch (error) {
+                hideLoading();
+                alert('Ошибка тестирования: ' + error.message);
+            }
+        }
+        
+        // Обновление информации о системе
+        function updateSystemInfo() {
+            const infoElement = document.getElementById('systemInfo');
+            const now = new Date();
+            
+            infoElement.innerHTML = `
+                User ID: <span class="user-id-badge">${userId.substring(0, 8)}...</span><br>
+                Время: ${now.toLocaleTimeString('ru-RU')}<br>
+                Обновлено: ${lastUpdate.toLocaleTimeString('ru-RU')}
+            `;
+        }
+        
+        // Обновление последней активности
+        function updateLastActivity(activity) {
+            const activityElement = document.getElementById('lastActivity');
+            const now = new Date();
+            
+            activityElement.innerHTML = `
+                ${activity}<br>
+                ${now.toLocaleTimeString('ru-RU')}
+            `;
+            
+            updateSystemInfo();
+        }
+        
+        // Вспомогательные функции
+        function showToast(message, type = 'info') {
+            // Создаем простой toast
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+            toast.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Автоматическое скрытие
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+        
+        function showLoading(text) {
+            let loading = document.getElementById('loadingOverlay');
+            if (!loading) {
+                loading = document.createElement('div');
+                loading.id = 'loadingOverlay';
+                loading.className = 'position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center';
+                loading.style.cssText = 'background: rgba(0,0,0,0.5); z-index: 1060;';
+                loading.innerHTML = `
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <span class="ms-2 text-white">${text}</span>
+                `;
+                document.body.appendChild(loading);
+            }
+        }
+        
+        function hideLoading() {
+            const loading = document.getElementById('loadingOverlay');
+            if (loading) {
+                loading.remove();
+            }
+        }
+        
+        function showUserIdInfo() {
+            alert(`Информация о User ID:\n\nВаш ID: ${userId}\n\nЭто уникальный идентификатор в формате GUID, который используется для:\n- Создания счета\n- Пополнения баланса\n- Создания заказов\n- Отслеживания статусов\n\nВы можете скопировать его для использования в других системах.`);
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            initUser();
+            fetchBalance();
+            fetchOrders();
+            updateLastActivity('Система запущена');
+            
+            // Автообновление каждые 30 секунд
+            setInterval(() => {
+                fetchBalance();
+                updateSystemInfo();
+            }, 30000);
+        });
+    </script>
+</body>
+</html>
