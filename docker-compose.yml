@@ -1,0 +1,144 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    build: ./ApiGateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - order-service
+      - payment-service
+      - rabbitmq
+    networks:
+      - shop-network
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+
+  # Order Service
+  order-service:
+    build: ./OrderService
+    container_name: order-service
+    ports:
+      - "5000:80"
+    depends_on:
+      sqlserver-orders:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - shop-network
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__OrderDb: "Server=sqlserver-orders;Database=OrderDb;User Id=sa;Password=Your_password123;TrustServerCertificate=true;Encrypt=false"
+      RabbitMQ__Host: "rabbitmq"
+      RabbitMQ__Username: "guest"
+      RabbitMQ__Password: "guest"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/orders/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Payment Service
+  payment-service:
+    build: ./PaymentService
+    container_name: payment-service
+    ports:
+      - "5001:80"
+    depends_on:
+      sqlserver-payments:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - shop-network
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__PaymentDb: "Server=sqlserver-payments;Database=PaymentDb;User Id=sa;Password=Your_password123;TrustServerCertificate=true;Encrypt=false"
+      RabbitMQ__Host: "rabbitmq"
+      RabbitMQ__Username: "guest"
+      RabbitMQ__Password: "guest"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/api/accounts/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Message Broker - RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - shop-network
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 60s
+
+  # Database for Orders
+  sqlserver-orders:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver-orders
+    ports:
+      - "1433:1433"
+    networks:
+      - shop-network
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Your_password123"
+      MSSQL_PID: "Express"
+    volumes:
+      - orders-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Your_password123' -d master -Q \"SELECT 1\" || exit 0"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # Database for Payments
+  sqlserver-payments:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver-payments
+    ports:
+      - "1434:1433"
+    networks:
+      - shop-network
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Your_password123"
+      MSSQL_PID: "Express"
+    volumes:
+      - payments-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Your_password123' -d master -Q \"SELECT 1\" || exit 0"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+networks:
+  shop-network:
+    driver: bridge
+
+volumes:
+  orders-data:
+  payments-data:
+  rabbitmq-data:
